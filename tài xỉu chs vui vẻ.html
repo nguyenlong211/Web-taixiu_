@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Game Tài Xỉu - Nguyễn Long</title>
+<style>
+  /* Nền xanh glassmorphism hiện đại */
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 50%, #1e3c72 100%);
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #eee;
+    position: relative;
+  }
+
+  /* Overlay bóng sáng lung linh */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 20% 30%, rgba(255,255,255,0.15), transparent 40%),
+      radial-gradient(circle at 80% 70%, rgba(0,150,255,0.25), transparent 60%);
+    filter: blur(80px);
+    z-index: 0;
+  }
+
+  /* Quả cầu xoay */
+  .rotating-ball {
+    position: fixed;
+    top: 50%; left: 50%;
+    width: 120px; height: 120px;
+    margin-left: -60px;
+    margin-top: -60px;
+    border-radius: 50%;
+    background: radial-gradient(circle at center, #33b5ff 0%, #0057a3 80%);
+    box-shadow: 0 0 50px #33b5ff88;
+    animation: rotateBall 10s linear infinite;
+    z-index: 0;
+    pointer-events: none;
+  }
+  @keyframes rotateBall {
+    0% {transform: rotate(0deg);}
+    100% {transform: rotate(360deg);}
+  }
+
+  #app {
+    width: 100%;
+    max-width: 480px;
+    padding: 16px;
+    box-sizing: border-box;
+    z-index: 10;
+    margin-top: 40px;
+    backdrop-filter: blur(18px);
+    background: rgba(30, 60, 114, 0.5);
+    border-radius: 16px;
+    box-shadow: 0 0 30px rgba(51, 181, 255, 0.4);
+  }
+
+  h1 {
+    margin-bottom: 20px;
+    text-align: center;
+    color: #80d8ff;
+    text-shadow: 0 0 15px #33b5ff;
+  }
+
+  #balance {
+    text-align: center;
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: #b3e5fc;
+  }
+
+  #choiceButtons {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  .choice-btn {
+    background: rgba(0, 64, 128, 0.6);
+    border: 2px solid #66b3ff;
+    border-radius: 12px;
+    color: #cce6ff;
+    font-size: 20px;
+    padding: 12px 28px;
+    margin: 0 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    user-select: none;
+    box-shadow: 0 0 8px #66b3ff88;
+  }
+  .choice-btn.selected {
+    background: #3399ff;
+    border-color: #a3d5ff;
+    color: #fff;
+    box-shadow: 0 0 20px #a3d5ff;
+  }
+  .choice-btn:hover {
+    background: #66b3ff;
+    color: #004080;
+  }
+
+  #betInputContainer {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+
+  #betAmount {
+    width: 180px;
+    padding: 10px;
+    font-size: 18px;
+    border-radius: 10px;
+    border: 2px solid #66b3ff;
+    background: rgba(0, 51, 102, 0.7);
+    color: #cce6ff;
+    text-align: center;
+    box-shadow: inset 0 0 8px #66b3ffaa;
+  }
+
+  #placeBetBtn {
+    margin-left: 16px;
+    padding: 12px 28px;
+    font-size: 18px;
+    border-radius: 12px;
+    border: none;
+    background: #33b5ff;
+    color: #111;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    box-shadow: 0 0 15px #33b5ffaa;
+  }
+  #placeBetBtn:hover:not(:disabled) {
+    background: #0099ff;
+    box-shadow: 0 0 25px #0099ffcc;
+  }
+  #placeBetBtn:disabled {
+    background: #555;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  #diceContainer {
+    margin-top: 36px;
+    display: flex;
+    gap: 24px;
+    justify-content: center;
+    user-select: none;
+  }
+
+  .dice {
+    width: 100px;
+    height: 100px;
+    background: rgba(0, 51, 102, 0.6);
+    border-radius: 20px;
+    box-shadow: inset 0 0 20px #003366dd, 0 0 30px #33b5ffbb;
+    position: relative;
+    margin: 0 10px;
+    border: 5px solid #004080;
+    transition: border-color 1s linear;
+    animation: rainbowBorderInfinite 5s linear infinite;
+  }
+
+  @keyframes rainbowBorderInfinite {
+    0%{border-color:#ff0000;}
+    14%{border-color:#ff7f00;}
+    28%{border-color:#ffff00;}
+    42%{border-color:#00ff00;}
+    57%{border-color:#0000ff;}
+    71%{border-color:#4b0082;}
+    85%{border-color:#8f00ff;}
+    100%{border-color:#ff0000;}
+  }
+
+  .dot {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: #cce6ff;
+    border-radius: 50%;
+    box-shadow: 0 0 6px rgba(204, 230, 255, 0.9);
+  }
+
+  .pos1 { top: 15px; left: 15px; }
+  .pos2 { top: 15px; left: 42px; }
+  .pos3 { top: 15px; right: 15px; }
+  .pos4 { top: 42px; left: 15px; }
+  .pos5 { top: 42px; left: 42px; }
+  .pos6 { top: 42px; right: 15px; }
+  .pos7 { bottom: 15px; left: 15px; }
+  .pos8 { bottom: 15px; left: 42px; }
+  .pos9 { bottom: 15px; right: 15px; }
+
+  .dice .dot { display: none; }
+
+  .dice-1 .pos5 { display: block; }
+  .dice-2 .pos1, .dice-2 .pos9 { display: block; }
+  .dice-3 .pos1, .dice-3 .pos5, .dice-3 .pos9 { display: block; }
+  .dice-4 .pos1, .dice-4 .pos3, .dice-4 .pos7, .dice-4 .pos9 { display: block; }
+  .dice-5 .pos1, .dice-5 .pos3, .dice-5 .pos5, .dice-5 .pos7, .dice-5 .pos9 { display: block; }
+  .dice-6 .pos1, .dice-6 .pos3, .dice-6 .pos4, .dice-6 .pos6, .dice-6 .pos7, .dice-6 .pos9 { display: block; }
+
+  #resultText {
+    margin-top: 20px;
+    font-size: 20px;
+    font-weight: 700;
+    height: 28px;
+    color: #80d8ff;
+    text-align: center;
+    min-width: 320px;
+    text-shadow: 0 0 8px #33b5ffcc;
+  }
+
+  /* Popup chào mừng */
+  #welcomeOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    color: #80d8ff;
+    font-weight: 700;
+    font-size: 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    padding: 20px;
+    text-align: center;
+  }
+  #welcomeOverlay button {
+    margin-top: 24px;
+    background: #33b5ff;
+    color: #111;
+    font-weight: 700;
+    font-size: 20px;
+    padding: 12px 32px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    box-shadow: 0 0 10px #33b5ffcc;
+    user-select: none;
+    transition: background 0.3s ease;
+  }
+  #welcomeOverlay button:hover {
+    background: #0099ff;
+  }
+</style>
+</head>
+<body>
+
+  <div class="rotating-ball"></div>
+
+  <div id="welcomeOverlay">
+    <div>PHẢI THAM GIA BOX TELE ĐỂ SỬ DỤNG</div>
+    <button id="goTelegramBtn">OK</button>
+  </div>
+
+  <div id="app" style="display:none;">
+    <h1>Game Tài Xỉu</h1>
+    <div id="balance">Số dư: <span id="balanceAmount">1,000,000</span> VNĐ</div>
+
+    <div id="choiceButtons">
+      <button id="btnTai" class="choice-btn">Tài</button>
+      <button id="btnXiu" class="choice-btn">Xỉu</button>
+    </div>
+
+    <div id="betInputContainer">
+      <input type="number" id="betAmount" min="1000" step="1000" placeholder="Nhập tiền cược (≥ 1000)" />
+      <button id="placeBetBtn" disabled>Đặt cược</button>
+    </div>
+
+    <div id="diceContainer">
+      <div id="dice1" class="dice">
+        <div class="dot pos1"></div>
+        <div class="dot pos2"></div>
+        <div class="dot pos3"></div>
+        <div class="dot pos4"></div>
+        <div class="dot pos5"></div>
+        <div class="dot pos6"></div>
+        <div class="dot pos7"></div>
+        <div class="dot pos8"></div>
+        <div class="dot pos9"></div>
+      </div>
+      <div id="dice2" class="dice">
+        <div class="dot pos1"></div>
+        <div class="dot pos2"></div>
+        <div class="dot pos3"></div>
+        <div class="dot pos4"></div>
+        <div class="dot pos5"></div>
+        <div class="dot pos6"></div>
+        <div class="dot pos7"></div>
+        <div class="dot pos8"></div>
+        <div class="dot pos9"></div>
+      </div>
+      <div id="dice3" class="dice">
+        <div class="dot pos1"></div>
+        <div class="dot pos2"></div>
+        <div class="dot pos3"></div>
+        <div class="dot pos4"></div>
+        <div class="dot pos5"></div>
+        <div class="dot pos6"></div>
+        <div class="dot pos7"></div>
+        <div class="dot pos8"></div>
+        <div class="dot pos9"></div>
+      </div>
+    </div>
+
+    <div id="resultText"></div>
+  </div>
+
+<script>
+  const welcomeOverlay = document.getElementById('welcomeOverlay');
+  const app = document.getElementById('app');
+  const goTelegramBtn = document.getElementById('goTelegramBtn');
+
+  goTelegramBtn.addEventListener('click', () => {
+    window.open('https://t.me/digitalhubvn', '_blank');
+    // Khi mở link xong, ẩn popup và show app
+    welcomeOverlay.style.display = 'none';
+    app.style.display = 'block';
+  });
+
+  let balance = 1000000;
+  let choice = null;
+  let betAmount = 0;
+  let isRolling = false;
+
+  const balanceAmountEl = document.getElementById('balanceAmount');
+  const btnTai = document.getElementById('btnTai');
+  const btnXiu = document.getElementById('btnXiu');
+  const betInput = document.getElementById('betAmount');
+  const placeBetBtn = document.getElementById('placeBetBtn');
+  const diceEls = [
+    document.getElementById('dice1'),
+    document.getElementById('dice2'),
+    document.getElementById('dice3')
+  ];
+  const resultText = document.getElementById('resultText');
+
+  function updateBalanceDisplay() {
+    balanceAmountEl.textContent = balance.toLocaleString('vi-VN');
+  }
+
+  function clearChoiceSelection() {
+    btnTai.classList.remove('selected');
+    btnXiu.classList.remove('selected');
+    choice = null;
+  }
+
+  btnTai.onclick = () => {
+    if(isRolling) return;
+    choice = 'tai';
+    btnTai.classList.add('selected');
+    btnXiu.classList.remove('selected');
+    checkCanPlaceBet();
+  };
+  btnXiu.onclick = () => {
+    if(isRolling) return;
+    choice = 'xiu';
+    btnXiu.classList.add('selected');
+    btnTai.classList.remove('selected');
+    checkCanPlaceBet();
+  };
+
+  betInput.oninput = () => {
+    betAmount = parseInt(betInput.value) || 0;
+    checkCanPlaceBet();
+  };
+
+  function checkCanPlaceBet() {
+    if(isRolling) {
+      placeBetBtn.disabled = true;
+      return;
+    }
+    if(choice && betAmount >= 1000 && betAmount <= balance) {
+      placeBetBtn.disabled = false;
+    } else {
+      placeBetBtn.disabled = true;
+    }
+  }
+
+  function showDiceFace(diceEl, number) {
+    diceEl.className = 'dice dice-' + number;
+  }
+
+  function resetDice() {
+    diceEls.forEach(d => {
+      d.className = 'dice';
+    });
+  }
+
+  async function placeBet() {
+    if(isRolling) return;
+    if(!choice) {
+      alert('Vui lòng chọn Tài hoặc Xỉu');
+      return;
+    }
+    if(betAmount < 1000) {
+      alert('Tiền cược tối thiểu là 1,000 VNĐ');
+      return;
+    }
+    if(betAmount > balance) {
+      alert('Số dư không đủ để cược');
+      return;
+    }
+    isRolling = true;
+    placeBetBtn.disabled = true;
+
+    resetDice();
+
+    balance -= betAmount;
+    updateBalanceDisplay();
+
+    await new Promise(r => setTimeout(r, 1200));
+
+    let diceResults = [];
+    for(let i=0; i<3; i++) {
+      diceResults.push(Math.floor(Math.random()*6)+1);
+    }
+    const total = diceResults.reduce((a,b)=>a+b,0);
+    const triple = (diceResults[0]===diceResults[1] && diceResults[1]===diceResults[2]);
+    let win = false;
+    if(triple) {
+      win = false;
+    } else if(choice === 'tai' && total >= 11 && total <= 17) {
+      win = true;
+    } else if(choice === 'xiu' && total >= 4 && total <= 10) {
+      win = true;
+    }
+
+    diceResults.forEach((v,i)=>showDiceFace(diceEls[i], v));
+
+    if(win) {
+      balance += betAmount*2;
+      resultText.textContent = `Bạn thắng! +${betAmount.toLocaleString()} VNĐ`;
+      resultText.style.color = '#4CAF50';
+    } else {
+      resultText.textContent = `Bạn thua! -${betAmount.toLocaleString()} VNĐ`;
+      resultText.style.color = '#F44336';
+    }
+    updateBalanceDisplay();
+
+    isRolling = false;
+    checkCanPlaceBet();
+  }
+
+  placeBetBtn.onclick = placeBet;
+
+  updateBalanceDisplay();
+</script>
+
+</body>
+</html>
